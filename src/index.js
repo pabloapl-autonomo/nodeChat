@@ -7,6 +7,7 @@ const socketio = require('socket.io')
 const badWordsFilter = require('bad-words')
 const { generateMessage, generateLocation } = require('./utils/messages')
 const { addUser, removeUser, getUser, getUsersInRoom } = require('./utils/users')
+const { redirect } = require('express/lib/response')
 
 
 const app = express()
@@ -54,6 +55,13 @@ io.on('connection', (socket) => {
         
         const user = getUser(socket.id)
 
+        if(!user){
+            console.error("Session Lost")
+            socket.emit('message',generateMessage("Session Lost, go to Login page './"))
+            callback('Session Lost')
+            return
+        }
+
         const filter = new badWordsFilter()
 
         if(filter.isProfane(receivedMessage)){
@@ -67,6 +75,12 @@ io.on('connection', (socket) => {
 
     socket.on('sendLocation', (clientLocation, callback) => {
         const user = getUser(socket.id)
+        if(!user){
+            console.error("Session Lost")
+            socket.emit('message',generateMessage("Session Lost, go to Login page './"))
+            callback('Session Lost')
+            return
+        }
         io.to(user.room).emit('locationMessage', generateLocation(user.username, `https://google.com/maps?q=${clientLocation.latitude},${clientLocation.longitude}`))
         callback(`https://google.com/maps?q=${clientLocation.latitude},${clientLocation.longitude}`)
     })
